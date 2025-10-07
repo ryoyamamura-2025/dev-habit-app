@@ -20,17 +20,17 @@
 アプリケーションのコードに関するもののみを記載
 ```
 .
-├── app/                # FastAPIアプリケーションのソースコード
-│   ├── main.py         # FastAPIアプリの起動ファイル
-│   ├── controller.py   # main.pyで定義されたエンドポイントとserviceの処理を繋ぐファイル
-│   ├── models.py       # APIのデータ形式を定義 (Pydanticモデル)
-│   └── services/       # 主要なGCPサービスのロジックを定義
-│       ├── gemini_service.py       # Gemini APIとの通信ロジック
-│       ├── prompt.py               # Gemini のプロンプトを定義
-│       ├── json_schema.py          # Gemini のJSONのレスポンス形式を定義
-│       └── firestore_service.py    # Firestoreの読み書きロジック
-└── static/             # フロントエンドの全コードを格納
-    ├── index.html      # アプリケーションのメインHTML
-    ├── script.js       # 画面操作とAPIの通信を行うJavaScript
-    └── style.css       # メインHTMLのスタイルシート
+└── app/                # FastAPIアプリケーションのソースコード
+    ├── main.py         # FastAPIアプリの起動ファイル
+    ├── controller.py   # main.pyで定義されたエンドポイントとserviceの処理を繋ぐファイル
+    ├── models.py       # APIのデータ形式を定義 (Pydanticモデル)
+    ├── services/       # 主要なGCPサービスのロジックを定義
+    │   ├── gemini_service.py       # Gemini APIとの通信ロジック
+    │   ├── prompt.py               # Gemini のプロンプトを定義
+    │   ├── json_schema.py          # Gemini のJSONのレスポンス形式を定義
+    │   └── firestore_service.py    # Firestoreの読み書きロジック
+    └── static/             # フロントエンドの全コードを格納
+        ├── index.html      # アプリケーションのメインHTML
+        ├── script.js       # 画面操作とAPIの通信を行うJavaScript
+        └── style.css       # メインHTMLのスタイルシート
 ```

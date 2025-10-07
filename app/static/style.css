@@ -1,0 +1,157 @@
+/* --- 基本設定 --- */
+:root {
+    --bg-color-dark: #1a1a1a;
+    --text-color-dark: #dcdcdc;
+    --border-color-dark: #444;
+    --link-color-dark: #8ab4f8;
+    --header-bg-dark: #333;
+    --form-bg-dark: #2a2a2a;
+    --post-bg-dark: #2c2c2c;
+    --button-bg-dark: #555;
+    --button-text-dark: #fff;
+
+    --bg-color-light: #f0f0f0;
+    --text-color-light: #333;
+    --border-color-light: #ccc;
+    --link-color-light: #0000ee;
+    --header-bg-light: #e0e0e0;
+    --form-bg-light: #fff;
+    --post-bg-light: #f9f9f9;
+    --button-bg-light: #ccc;
+    --button-text-light: #000;
+}
+
+body {
+    font-family: 'MS PGothic', 'Mona', sans-serif;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.dark-theme {
+    background-color: var(--bg-color-dark);
+    color: var(--text-color-dark);
+}
+
+.light-theme {
+    background-color: var(--bg-color-light);
+    color: var(--text-color-light);
+}
+
+main {
+    padding: 1rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- ヘッダー --- */
+header {
+    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid;
+}
+.dark-theme header { background-color: var(--header-bg-dark); border-color: var(--border-color-dark); }
+.light-theme header { background-color: var(--header-bg-light); border-color: var(--border-color-light); }
+
+header h1 {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+/* --- フォーム --- */
+form {
+    padding: 1rem;
+    border: 1px solid;
+    margin-top: 1rem;
+}
+.dark-theme form { background-color: var(--form-bg-dark); border-color: var(--border-color-dark); }
+.light-theme form { background-color: var(--form-bg-light); border-color: var(--border-color-light); }
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+input[type="text"], textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid;
+    box-sizing: border-box;
+}
+.dark-theme input, .dark-theme textarea { background-color: #333; color: var(--text-color-dark); border-color: var(--border-color-dark); }
+.light-theme input, .light-theme textarea { background-color: #fff; color: var(--text-color-light); border-color: var(--border-color-light); }
+
+button {
+    padding: 0.5rem 1rem;
+    border: none;
+    cursor: pointer;
+}
+.dark-theme button { background-color: var(--button-bg-dark); color: var(--button-text-dark); }
+.light-theme button { background-color: var(--button-bg-light); color: var(--button-text-light); }
+
+/* --- スレッド一覧 --- */
+#thread-list .thread-item {
+    padding: 0.5rem;
+    border-bottom: 1px solid;
+    cursor: pointer;
+}
+.dark-theme #thread-list .thread-item { border-color: var(--border-color-dark); }
+.light-theme #thread-list .thread-item { border-color: var(--border-color-light); }
+
+#thread-list .thread-item:hover {
+    opacity: 0.7;
+}
+
+#thread-list .thread-item a {
+    text-decoration: none;
+    font-weight: bold;
+}
+.dark-theme #thread-list .thread-item a { color: var(--link-color-dark); }
+.light-theme #thread-list .thread-item a { color: var(--link-color-light); }
+
+/* --- チャット画面 --- */
+.chat-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+#chat-posts .post {
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    border: 1px solid;
+}
+.dark-theme #chat-posts .post { background-color: var(--post-bg-dark); border-color: var(--border-color-dark); }
+.light-theme #chat-posts .post { background-color: var(--post-bg-light); border-color: var(--border-color-light); }
+
+.post-header {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+.dark-theme .post-header { color: #4caf50; } /* 緑色 */
+.light-theme .post-header { color: #008000; }
+
+.post-message {
+    white-space: pre-wrap; /* 改行を反映 */
+    word-wrap: break-word;
+}
+
+#ai-generating-notice {
+    text-align: center;
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px dashed;
+}
+.dark-theme #ai-generating-notice { border-color: #ffc107; color: #ffc107; }
+.light-theme #ai-generating-notice { border-color: #ffa500; color: #ffa500; }
