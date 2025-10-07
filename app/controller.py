@@ -12,7 +12,7 @@ from google.cloud import firestore
 
 # AI関連のインポート
 from services.gemini_service import geminiApiCaller, geminiApiCallerWithTool
-from services.prompt import NANASHI_BASE_PROMPT, KAISUTSU_NIKI_PROMPT
+from services.prompt import NANASHI_BASE_PROMPT, KAISUTSU_NIKI_PROMPT, NANASHI_REP_PROMPT
 from services.json_schema import KAISUTSU_NIKI_SCHEMA
 
 router = APIRouter()
@@ -36,17 +36,17 @@ async def generate_ai_responses(thread_id: str, user_post_message: str, thread_t
         if is_question:
             # --- 解説ニキの処理 ---
             # TODO: thinking_budgetは適切な値に調整
-            caller = geminiApiCallerWithTool(model_name="gemini-2.5-flash-lite", thinking_budget=0, response_schema=KAISUTSU_NIKI_SCHEMA)
+            caller = geminiApiCallerWithTool(model_name="gemini-2.5-flash", thinking_budget=-1, response_schema=KAISUTSU_NIKI_SCHEMA)
             prompt = KAISUTSU_NIKI_PROMPT.format(user_post=user_post_message)
             parsed, _ = await caller.atext2text(prompt)
             
-            kaisetsu_message = f"{parsed['summary']}\n\n参考URL: {parsed['reference_url']}"
+            kaisetsu_message = f"{parsed.get('response', 'わしにもわからん。あほじゃけえ')}"
             
             # リアクションする名無しさんを1体生成
             # TODO: thinking_budgetは適切な値に調整
             nanashi_caller = geminiApiCaller(model_name="gemini-2.5-flash-lite", thinking_budget=0)
-            emotion = "応援" # 解説ニキの後は応援で固定
-            nanashi_prompt = NANASHI_BASE_PROMPT.format(emotion=emotion, thread_title=thread_title, user_post=kaisetsu_message)
+            emotion = "太鼓持ち" # 解説ニキの後は太鼓持ちで固定
+            nanashi_prompt = NANASHI_REP_PROMPT.format(emotion=emotion, thread_title=thread_title, user_post=kaisetsu_message)
             nanashi_message, _ = await nanashi_caller.atext2text(nanashi_prompt)
 
             new_posts = [
