@@ -57,7 +57,7 @@ async def generate_ai_responses(thread_id: str, user_post_message: str, thread_t
         else:
             # --- 名無しさんの処理 ---
             emotions = ["応援", "懐疑的", "冷静なアドバイス"]
-            num_responses = random.randint(2, 5)
+            num_responses = 3
             
             # 並行処理でAIレスポンスを生成
             async def generate_single_response(emotion):
@@ -67,7 +67,7 @@ async def generate_ai_responses(thread_id: str, user_post_message: str, thread_t
                 response_text, _ = await caller.atext2text(prompt)
                 return response_text
 
-            tasks = [generate_single_response(random.choice(emotions)) for _ in range(num_responses)]
+            tasks = [generate_single_response(emotions[i]) for i in range(num_responses)]
             generated_messages = await asyncio.gather(*tasks)
 
             new_posts = [
