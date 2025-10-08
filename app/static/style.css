@@ -101,9 +101,11 @@ button {
 
 /* --- スレッド一覧 --- */
 #thread-list .thread-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 0.5rem;
     border-bottom: 1px solid;
-    cursor: pointer;
 }
 .dark-theme #thread-list .thread-item { border-color: var(--border-color-dark); }
 .light-theme #thread-list .thread-item { border-color: var(--border-color-light); }
@@ -115,9 +117,25 @@ button {
 #thread-list .thread-item a {
     text-decoration: none;
     font-weight: bold;
+    flex-grow: 1; /* リンク領域を広げる */
 }
 .dark-theme #thread-list .thread-item a { color: var(--link-color-dark); }
 .light-theme #thread-list .thread-item a { color: var(--link-color-light); }
+
+.delete-thread-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    margin-left: 1rem;
+}
+
+.delete-thread-button:hover {
+    background-color: #c82333;
+}
 
 /* --- チャット画面 --- */
 .chat-header {

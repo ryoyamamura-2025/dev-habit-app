@@ -60,7 +60,11 @@ document.addEventListener('DOMContentLoaded', () => {
             threads.forEach(thread => {
                 const threadItem = document.createElement('div');
                 threadItem.className = 'thread-item';
-                threadItem.innerHTML = `<a href="#" data-thread-id="${thread.id}" data-thread-title="${thread.title}">${thread.title} (${thread.posts.length})</a>`;
+                // 削除ボタンを追加
+                threadItem.innerHTML = `
+                    <a href="#" class="thread-link" data-thread-id="${thread.id}" data-thread-title="${thread.title}">${thread.title} (${thread.posts.length})</a>
+                    <button class="delete-thread-button" data-thread-id="${thread.id}">削除</button>
+                `;
                 threadList.appendChild(threadItem);
             });
         } catch (error) {
@@ -144,6 +148,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // スレッド削除処理
+    const handleDeleteThread = async (threadId) => {
+        if (!confirm('本当にこのスレッドを削除しますか？')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/threads/${threadId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error('スレッドの削除に失敗しました');
+            }
+
+            // 削除成功後、スレッド一覧を再読み込み
+            fetchThreads();
+
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
+    };
+
     // ポーリング処理 (DEV-17)
     const checkAiStatus = async (threadId) => {
         try {
@@ -188,11 +216,18 @@ document.addEventListener('DOMContentLoaded', () => {
     backToThreadsButton.addEventListener('click', showThreadList);
 
     threadList.addEventListener('click', (e) => {
-        if (e.target.tagName === 'A') {
-            e.preventDefault();
-            const threadId = e.target.dataset.threadId;
-            const threadTitle = e.target.dataset.threadTitle;
+        e.preventDefault();
+        
+        const link = e.target.closest('.thread-link');
+        const deleteButton = e.target.closest('.delete-thread-button');
+
+        if (link) {
+            const threadId = link.dataset.threadId;
+            const threadTitle = link.dataset.threadTitle;
             showChatView(threadId, threadTitle);
+        } else if (deleteButton) {
+            const threadId = deleteButton.dataset.threadId;
+            handleDeleteThread(threadId);
         }
     });
     
