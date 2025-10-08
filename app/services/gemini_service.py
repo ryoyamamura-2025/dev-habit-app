@@ -87,16 +87,20 @@ class geminiApiCaller():
 
         self.generate_content_config = self.set_generate_content_config()
 
-        response = await _client.aio.models.generate_content(
-            model = self.model_name,
-            contents = contents,
-            config = self.generate_content_config
-        )            
-        
-        if self.response_schema:
-            return response.parsed, response
-        else:
-            return response.text, response
+        try:
+            response = await _client.aio.models.generate_content(
+                model = self.model_name,
+                contents = contents,
+                config = self.generate_content_config
+            )            
+            
+            if self.response_schema:
+                return response.parsed, None
+            else:
+                return response.text, None
+        except Exception as e:
+            print(f"Gemini API呼び出しでエラーが発生しました: {e}")
+            return None, str(e)
 
         
 class geminiApiCallerWithTool(geminiApiCaller):

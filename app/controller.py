@@ -12,8 +12,8 @@ from google.cloud import firestore
 
 # AI関連のインポート
 from services.gemini_service import geminiApiCaller, geminiApiCallerWithTool
-from services.prompt import NANASHI_BASE_PROMPT, KAISUTSU_NIKI_PROMPT, NANASHI_REP_PROMPT
-from services.json_schema import KAISUTSU_NIKI_SCHEMA
+from services.prompt import NANASHI_BASE_PROMPT, KAISUTSU_NIKI_PROMPT, NANASHI_REP_PROMPT, NANASHI_MULTI_PROMPT, NANASHI_MULTI_SYSTEM_INSTRUCTION
+from services.json_schema import KAISUTSU_NIKI_SCHEMA, NANASHI_MULTI_RESPONSE_SCHEMA
 
 router = APIRouter()
 GCP_FIRESTORE_DB_NAME=os.getenv("GCP_FIRESTORE_DB_NAME")
@@ -35,44 +35,88 @@ async def generate_ai_responses(thread_id: str, user_post_message: str, thread_t
 
         if is_question:
             # --- 解説ニキの処理 ---
-            # TODO: thinking_budgetは適切な値に調整
-            caller = geminiApiCallerWithTool(model_name="gemini-2.5-flash", thinking_budget=-1, response_schema=KAISUTSU_NIKI_SCHEMA)
+            caller = geminiApiCallerWithTool(model_name="gemini-2.5-flash", response_schema=KAISUTSU_NIKI_SCHEMA, thinking_budget=-1)
             prompt = KAISUTSU_NIKI_PROMPT.format(user_post=user_post_message)
-            parsed, _ = await caller.atext2text(prompt)
+            parsed, error = await caller.atext2text(prompt)
             
-            kaisetsu_message = f"{parsed.get('response', 'わしにもわからん。あほじゃけえ')}"
-            
-            # リアクションする名無しさんを1体生成
-            # TODO: thinking_budgetは適切な値に調整
-            nanashi_caller = geminiApiCaller(model_name="gemini-2.5-flash-lite", thinking_budget=0)
-            emotion = "太鼓持ち" # 解説ニキの後は太鼓持ちで固定
-            nanashi_prompt = NANASHI_REP_PROMPT.format(emotion=emotion, thread_title=thread_title, user_post=kaisetsu_message)
-            nanashi_message, _ = await nanashi_caller.atext2text(nanashi_prompt)
+            if error:
+                kaisetsu_message = "すまん、ちょっと調子が悪いみたいだ。後でまた試してみてくれ。"
+                new_posts = [{"author": "解説ニキ", "message": kaisetsu_message}]
+            else:
+                kaisetsu_message = parsed.get('response', 'わしにもわからん。あほじゃけえ')
+                # リアクションする名無しさんを1体生成
+                nanashi_caller = geminiApiCaller(model_name="gemini-2.5-flash-lite", thinking_budget=0)
+                emotion = "太鼓持ち" # 解説ニキの後は太鼓持ちで固定
+                nanashi_prompt = NANASHI_REP_PROMPT.format(emotion=emotion, thread_title=thread_title, user_post=kaisetsu_message)
+                nanashi_message, nanashi_error = await nanashi_caller.atext2text(nanashi_prompt)
+                
+                if nanashi_error:
+                    nanashi_message = "せやな"
 
-            new_posts = [
-                {"author": "解説ニキ", "message": kaisetsu_message},
-                {"author": "名無しさん", "message": nanashi_message}
-            ]
+                new_posts = [
+                    {"author": "解説ニキ", "message": kaisetsu_message},
+                    {"author": "名無しさん", "message": nanashi_message}
+                ]
 
         else:
-            # --- 名無しさんの処理 ---
-            emotions = ["応援", "懐疑的", "冷静なアドバイス"]
+            # --- 名無しさんの処理（単一API呼び出し） ---
             num_responses = 3
+            # TODO: thinking_budgetは適切な値に調整
+            caller = geminiApiCaller(model_name="gemini-2.5-flash", response_schema=NANASHI_MULTI_RESPONSE_SCHEMA, thinking_budget=-1)
             
-            # 並行処理でAIレスポンスを生成
-            async def generate_single_response(emotion):
-                # TODO: thinking_budgetは適切な値に調整
-                caller = geminiApiCaller(model_name="gemini-2.5-flash-lite", thinking_budget=0)
-                prompt = NANASHI_BASE_PROMPT.format(emotion=emotion, thread_title=thread_title, user_post=user_post_message)
-                response_text, _ = await caller.atext2text(prompt)
-                return response_text
+            # 過去の投稿履歴を取得
+            snapshot = await thread_ref.get()
+            thread_data = snapshot.to_dict() if snapshot.exists else {}
+            posts = sorted(thread_data.get("posts", []), key=lambda p: p.get('post_id', 0))
 
-            tasks = [generate_single_response(emotions[i]) for i in range(num_responses)]
-            generated_messages = await asyncio.gather(*tasks)
+            if posts:
+                thread_history_lines = []
+                for post in posts:
+                    created_at = post.get('created_at')
+                    time_str = ""
+                    # Firestoreから取得したタイムスタンプはdatetimeオブジェクトの場合と、文字列の場合があるため両対応
+                    if isinstance(created_at, datetime):
+                        time_str = created_at.strftime('%Y-%m-%d %H:%M:%S')
+                    elif isinstance(created_at, str):
+                        # ISOフォーマットの文字列をパースする想定
+                        try:
+                            time_str = datetime.fromisoformat(created_at).strftime('%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            time_str = created_at # パース失敗時は元の文字列をそのまま利用
+                    
+                    author = post.get('author', '不明')
+                    message = post.get('message', '')
+                    thread_history_lines.append(f"{author} ({time_str}): {message}")
+                thread_history = "\n".join(thread_history_lines)
+            else:
+                # 履歴が取得できない場合は、現在の投稿を履歴とする
+                # この場合、正確な時間は不明なため含めない
+                thread_history = f"イッチ: {user_post_message}"
+            
+            prompt = NANASHI_MULTI_PROMPT.format(
+                num_replies=num_responses,
+                thread_title=thread_title,
+                thread_history=thread_history, # 本来は完全な履歴
+                latest_post_content=user_post_message
+            )
+            print(prompt)
+            # システムインストラクションをプロンプトに含める
+            full_prompt = f"{NANASHI_MULTI_SYSTEM_INSTRUCTION.format(num_replies=num_responses)}\n\n{prompt}"
 
-            new_posts = [
-                {"author": "名無しさん", "message": msg} for msg in generated_messages
-            ]
+            parsed_responses, error = await caller.atext2text(full_prompt)
+
+            if error or not parsed_responses:
+                # エラー時やレスポンスがない場合は固定の代替レスポンス
+                new_posts = [
+                    {"author": "名無しさん", "message": "せやな"},
+                    {"author": "名無しさん", "message": "草"},
+                    {"author": "名無しさん", "message": "なるほど"},
+                ]
+            else:
+                new_posts = [
+                    {"author": "名無しさん", "message": item.get('content', '...')} for item in parsed_responses
+                ]
+
         # AIが何も生成しなかった場合は書き込まない
         if not new_posts:
             return # finallyは実行される

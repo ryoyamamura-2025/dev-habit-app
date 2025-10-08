@@ -6,3 +6,17 @@ KAISUTSU_NIKI_SCHEMA = {
   },
   "required": ["response"]
 }
+
+NANASHI_MULTI_RESPONSE_SCHEMA = {
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string",
+        "description": "The content of the post in 2channel style Japanese. The content must be in Japanese.",
+      },
+    },
+    "required": ["content"],
+  },
+}
