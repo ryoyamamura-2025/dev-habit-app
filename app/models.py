@@ -34,3 +34,10 @@ class CreatePostRequest(BaseModel):
     投稿作成APIのリクエストボディ
     """
     message: str = Field(..., description="投稿内容", min_length=1, max_length=1000)
+
+class ThreadStatus(BaseModel):
+    """
+    スレッドの状態（ポーリング用）
+    """
+    is_generating: bool = Field(..., description="AIレスポンス生成中フラグ")
+    post_count: int = Field(..., description="現在の投稿数")

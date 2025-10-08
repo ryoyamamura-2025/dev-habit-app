@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 import random
 import asyncio
 import os
 
-from models import CreateThreadRequest, Thread, ThreadPost, CreatePostRequest
+from models import CreateThreadRequest, Thread, ThreadPost, CreatePostRequest, ThreadStatus
 from services.firestore_service import db
 from google.cloud import firestore
 
@@ -211,7 +211,7 @@ async def delete_thread(thread_id: str):
 
 
 @router.get("/api/threads/{thread_id}/posts", response_model=List[ThreadPost])
-async def get_posts_in_thread(thread_id: str):
+async def get_posts_in_thread(thread_id: str, since: Optional[int] = None):
     # ... (変更なし)
     try:
         doc_ref = db.collection("threads").document(thread_id)
@@ -219,9 +219,33 @@ async def get_posts_in_thread(thread_id: str):
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Thread not found")
         thread = Thread(**doc.to_dict())
-        sorted_posts = sorted(thread.posts, key=lambda p: p.post_id)
+        
+        if since is not None:
+            # 'since' より新しい投稿のみをフィルタリング
+            new_posts = [p for p in thread.posts if p.post_id > since]
+            sorted_posts = sorted(new_posts, key=lambda p: p.post_id)
+        else:
+            # sinceがなければ全件取得（既存の動作）
+            sorted_posts = sorted(thread.posts, key=lambda p: p.post_id)
+            
         return sorted_posts
     except HTTPException as e:
         raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/threads/{thread_id}/status", response_model=ThreadStatus)
+async def get_thread_status(thread_id: str):
+    try:
+        doc_ref = db.collection("threads").document(thread_id)
+        doc = await doc_ref.get()
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        
+        thread_data = doc.to_dict()
+        post_count = len(thread_data.get("posts", []))
+        is_generating = thread_data.get("is_generating", False)
+        
+        return ThreadStatus(is_generating=is_generating, post_count=post_count)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

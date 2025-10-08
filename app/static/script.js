@@ -101,8 +101,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_BASE_URL}/threads/${threadId}/posts`);
             if (!response.ok) throw new Error('投稿の取得に失敗しました');
-            const posts = await response.json();
+            const data = await response.json();
 
+            // APIレスポンスが {posts: [...]} 形式か、 [...] 形式かを判定
+            const posts = Array.isArray(data) ? data : data.posts;
+
+            if (!posts) {
+                console.error("Could not find posts array in API response", data);
+                renderPosts([]); // エラーでも画面をクリアするために空配列を渡す
+                return;
+            }
             renderPosts(posts);
         } catch (error) {
             console.error(error);
@@ -112,17 +120,51 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const renderPosts = (posts) => {
         chatPosts.innerHTML = '';
+        if (!posts || posts.length === 0) return;
+
+        appendPosts(posts, { scroll: 'auto' }); // 初期ロードは即時スクロール
+    };
+
+    // 新しい投稿をDOMに追加する関数
+    const appendPosts = (posts, options = {}) => {
+        if (!posts || posts.length === 0) return;
+
+        const scrollBehavior = options.scroll || 'smooth'; // デフォルトはスムーズスクロール
+
         posts.forEach(post => {
             const postElement = document.createElement('div');
             postElement.className = 'post';
+            postElement.id = `post-${post.post_id}`;
             postElement.innerHTML = `
                 <div class="post-header">${post.post_id}: <span class="author">${post.author}</span> <span class="date">${new Date(post.created_at).toLocaleString()}</span></div>
-                <div class="post-message">${escapeHTML(post.message)}</div>
+                <div class="post-message">${convertAnchors(escapeHTML(post.message))}</div>
             `;
             chatPosts.appendChild(postElement);
         });
-        // 自動スクロール
-        chatPosts.scrollTop = chatPosts.scrollHeight;
+
+        const lastPost = chatPosts.lastElementChild;
+        if (lastPost) {
+            if (scrollBehavior === 'auto') {
+                lastPost.scrollIntoView();
+            } else {
+                lastPost.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    };
+
+    // 新しい投稿のみを取得する関数
+    const fetchNewPosts = async (threadId) => {
+        const lastPostElement = chatPosts.lastElementChild;
+        const lastPostId = lastPostElement ? parseInt(lastPostElement.id.replace('post-', '')) : 0;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/threads/${threadId}/posts?since=${lastPostId}`);
+            if (!response.ok) throw new Error('新しい投稿の取得に失敗しました');
+            const newPosts = await response.json();
+            appendPosts(newPosts);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     // 投稿作成 (DEV-16)
@@ -140,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('投稿に失敗しました');
             
             document.getElementById('post-message').value = '';
-            await fetchPosts(threadId); // 投稿後、即時反映
+            await fetchNewPosts(threadId); // 自分の投稿も差分取得で反映
             startPolling(threadId); // AIのレスを待つためにポーリング開始
         } catch (error) {
             console.error(error);
@@ -175,26 +217,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // ポーリング処理 (DEV-17)
     const checkAiStatus = async (threadId) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/threads`);
-            if (!response.ok) return;
-            const threads = await response.json();
-            const currentThread = threads.find(t => t.id === threadId);
+            const response = await fetch(`${API_BASE_URL}/threads/${threadId}/status`);
+            if (!response.ok) {
+                stopPolling();
+                return;
+            }
+            const status = await response.json();
 
-            if (currentThread) {
-                if (currentThread.is_generating) {
-                    aiGeneratingNotice.classList.remove('hidden');
-                } else {
-                    aiGeneratingNotice.classList.add('hidden');
-                    // 生成が終わった可能性があるので、投稿を再取得してポーリングを止める
-                    const currentPostCount = chatPosts.children.length;
-                    if (currentThread.posts.length > currentPostCount) {
-                        renderPosts(currentThread.posts);
-                    }
-                    stopPolling();
+            if (status.is_generating) {
+                aiGeneratingNotice.classList.remove('hidden');
+            } else {
+                aiGeneratingNotice.classList.add('hidden');
+                stopPolling(); // 生成が完了したのでポーリングを停止
+
+                // 投稿数が増えていれば、新しい投稿のみを取得
+                const currentPostCount = chatPosts.children.length;
+                if (status.post_count > currentPostCount) {
+                    fetchNewPosts(threadId);
                 }
             }
         } catch (error) {
             console.error('ポーリングエラー:', error);
+            stopPolling(); // エラー時もポーリングを停止
         }
     };
 
@@ -230,6 +274,23 @@ document.addEventListener('DOMContentLoaded', () => {
             handleDeleteThread(threadId);
         }
     });
+
+    chatPosts.addEventListener('click', (e) => {
+        const anchor = e.target.closest('.anchor-link');
+        if (anchor) {
+            e.preventDefault();
+            const postId = anchor.dataset.postId;
+            const targetPost = document.getElementById(`post-${postId}`);
+            if (targetPost) {
+                // スクロールしてハイライト
+                targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetPost.classList.add('post-highlight');
+                setTimeout(() => {
+                    targetPost.classList.remove('post-highlight');
+                }, 1500); // 1.5秒後にハイライトを消す
+            }
+        }
+    });
     
     // --- ユーティリティ ---
     const escapeHTML = (str) => {
@@ -242,6 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 "'": '&#39;'
             }[match];
         });
+    };
+
+    const convertAnchors = (text) => {
+        return text.replace(/&gt;(\d+)/g, '<a href="#" class="anchor-link" data-post-id="$1">&gt;$1</a>');
     };
 
     // --- 初期化 ---

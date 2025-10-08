@@ -9,6 +9,7 @@
     --post-bg-dark: #2c2c2c;
     --button-bg-dark: #555;
     --button-text-dark: #fff;
+    --highlight-bg-dark: #5a5a2a;
 
     --bg-color-light: #f0f0f0;
     --text-color-light: #333;
@@ -19,6 +20,7 @@
     --post-bg-light: #f9f9f9;
     --button-bg-light: #ccc;
     --button-text-light: #000;
+    --highlight-bg-light: #fffacd;
 }
 
 body {
@@ -149,6 +151,7 @@ button {
     margin-bottom: 1rem;
     padding: 0.8rem;
     border: 1px solid;
+    transition: background-color 0.5s;
 }
 .dark-theme #chat-posts .post { background-color: var(--post-bg-dark); border-color: var(--border-color-dark); }
 .light-theme #chat-posts .post { background-color: var(--post-bg-light); border-color: var(--border-color-light); }
@@ -163,6 +166,19 @@ button {
 .post-message {
     white-space: pre-wrap; /* 改行を反映 */
     word-wrap: break-word;
+}
+
+.post-message a {
+    text-decoration: underline;
+}
+.dark-theme .post-message a { color: var(--link-color-dark); }
+.light-theme .post-message a { color: var(--link-color-light); }
+
+.dark-theme .post.post-highlight {
+    background-color: var(--highlight-bg-dark);
+}
+.light-theme .post.post-highlight {
+    background-color: var(--highlight-bg-light);
 }
 
 #ai-generating-notice {
