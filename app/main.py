@@ -17,11 +17,24 @@ secret_key = os.urandom(24)
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 app.add_middleware(SessionMiddleware, secret_key=secret_key)
 
-flow = Flow.from_client_secrets_file(
-    client_secrets_file=os.environ.get("CLIENT_SECRETS"),
+client_id = os.environ.get("GOOGLE_CLIENT_ID")
+client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+# 2. Flow.from_client_config に渡すための設定辞書を作成
+client_config = {
+    "web": {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+    }
+}
+
+flow = Flow.from_client_config(
+    client_config=client_config,
     scopes=[
-        "openid", 
-        "https://www.googleapis.com/auth/userinfo.profile", 
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.profile",
         "https://www.googleapis.com/auth/userinfo.email"
     ],
     redirect_uri="https://habit-app-897239585193.us-central1.run.app/callback"
