@@ -15,7 +15,7 @@ COPY pyproject.toml uv.lock /app/
 RUN uv sync --locked --no-install-project
 
 # 5) ここで初めてソースをコピー
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock client_secret.json ./
 COPY ./app ./
 # 6) プロジェクト本体を editable で同期 
 #    Cloud run への Deploy 時は BuildKit が使えない

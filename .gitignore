@@ -11,5 +11,6 @@ wheels/
 
 deploy.sh
 credentials.json
+client_secret.json
 .env
 .env.yaml
