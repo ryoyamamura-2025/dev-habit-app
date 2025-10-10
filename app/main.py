@@ -95,6 +95,20 @@ async def callback(request: Request):
         audience=credentials.client_id,
     )
 
+    user_email = id_info.get("email")
+    ALLOWED_EMAILS_STR = os.environ.get("ALLOWED_EMAILS", "")
+    ALLOWED_EMAILS = [email.strip() for email in ALLOWED_EMAILS_STR.split(',') if email.strip()]
+    print("ALLOWED_EMAILS: ", ALLOWED_EMAILS)
+
+    if user_email not in ALLOWED_EMAILS:
+        # 許可リストにないメールアドレスの場合はアクセスを拒否
+        return HTMLResponse(
+            "<h1>アクセスが許可されていません</h1>"
+            "<p>このアプリケーションを使用する権限がありません。</p>"
+            "<p>管理者に問い合わせてください。</p>",
+            status_code=403 # 403 Forbidden
+        )
+    
     # ユーザー情報をセッションに保存
     request.session['user'] = {
         'id': id_info.get("sub"),
